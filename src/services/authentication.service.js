@@ -1,32 +1,41 @@
 import api from "./api";
-const API_URL = import.meta.env.VITE_AUTH_URL;
-
 import TokenService from "./token.service";
 
+const API_URL = import.meta.env.VITE_AUTH_URL;
+
+// สมัครสมาชิก
 const register = async (username, password) => {
-  console.log("API URL ", API_URL);
-  return await api.post(API_URL + "/register", { username, password });
+  return await api.post(`${API_URL}/register`, {
+    username,
+    password,
+  });
 };
 
+// เข้าสู่ระบบ
 const login = async (username, password) => {
-  const response = await api.post(API_URL + "/login", { username, password });
-  const { status, data } = response;
-  if (status === 200) {
-    if (data?.accessToken) {
-      TokenService.setUser(data);
-    }
+  const response = await api.post(`${API_URL}/login`, {
+    username,
+    password,
+  });
+
+  if (response.status === 200 && response.data?.accessToken) {
+    TokenService.setUser({
+      id: response.data.id,
+      username: response.data.username,
+      accessToken: response.data.accessToken,
+    });
   }
+
   return response;
 };
 
+// ออกจากระบบ
 const logout = () => {
   TokenService.removeUser();
 };
 
-const AuthService = {
+export default {
   register,
   login,
   logout,
 };
-
-export default AuthService;

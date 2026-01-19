@@ -3,7 +3,9 @@ import { Cookies } from "react-cookie";
 const cookie = new Cookies();
 const COOKIE_KEY = "user";
 
-// 🔹 ดึง user (parse JSON ให้เรียบร้อย)
+/**
+ * 🔹 ดึง user จาก cookie
+ */
 const getUser = () => {
   const user = cookie.get(COOKIE_KEY);
   if (!user) return null;
@@ -11,20 +13,24 @@ const getUser = () => {
   try {
     return typeof user === "string" ? JSON.parse(user) : user;
   } catch (error) {
-    console.error("Failed to parse user cookie", error);
+    console.error("Failed to parse user cookie:", error);
     return null;
   }
 };
 
-// 🔹 ดึง accessToken (ใช้กับ API)
+/**
+ * 🔹 ดึง accessToken (ใช้แนบ Authorization)
+ */
 const getAccessToken = () => {
   const user = getUser();
-  return user?.accessToken || null;
+  return user && user.accessToken ? user.accessToken : null;
 };
 
-// 🔹 ตั้งค่า user + token
+/**
+ * 🔹 เก็บ user + token ลง cookie
+ */
 const setUser = (user) => {
-  if (!user) {
+  if (!user || !user.accessToken) {
     removeUser();
     return;
   }
@@ -35,22 +41,23 @@ const setUser = (user) => {
     accessToken: user.accessToken,
   };
 
-  cookie.set(COOKIE_KEY, JSON.stringify(userData), {
+  cookie.set(COOKIE_KEY, userData, {
     path: "/",
-    expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 วัน
+    maxAge: 60 * 60 * 24, // 1 วัน (วินาที)
+    sameSite: "lax",
   });
 };
 
-// 🔹 ลบ user (logout)
+/**
+ * 🔹 ลบ user (logout)
+ */
 const removeUser = () => {
   cookie.remove(COOKIE_KEY, { path: "/" });
 };
 
-const TokenService = {
+export default {
   getUser,
   getAccessToken,
   setUser,
   removeUser,
 };
-
-export default TokenService;

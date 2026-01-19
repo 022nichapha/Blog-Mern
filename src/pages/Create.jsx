@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import PostService from "../services/post.service";
 import Editor from "../components/Editor";
@@ -11,130 +11,104 @@ const Create = () => {
     content: "",
     file: null,
   });
-  const [content, setContent] = useState("");
+
   const editorRef = useRef(null);
   const navigate = useNavigate();
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, files } = e.target;
+
     if (name === "file") {
-      setPostDetail({ ...postDetail, [name]: e.target.files[0] });
+      setPostDetail((prev) => ({
+        ...prev,
+        file: files[0],
+      }));
     } else {
-      setPostDetail({ ...postDetail, [name]: value });
+      setPostDetail((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
     }
   };
+
   const handleContentChange = (value) => {
-    setContent(value);
-    setPostDetail({ ...postDetail, content: content });
+    setPostDetail((prev) => ({
+      ...prev,
+      content: value, // ✅ ใช้ value ตรง ๆ
+    }));
   };
 
   const handleSubmit = async () => {
+    if (!postDetail.file) {
+      Swal.fire("Create Post", "Image is required", "error");
+      return;
+    }
+
     try {
       const data = new FormData();
-      data.set("title", postDetail.title);
-      data.set("summary", postDetail.summary);
-      data.set("content", postDetail.content);
-      data.set("file", postDetail.file);
+      data.append("title", postDetail.title);
+      data.append("summary", postDetail.summary);
+      data.append("content", postDetail.content);
+      data.append("file", postDetail.file); // ✅ ชื่อ field ต้องตรง backend
+
       const response = await PostService.createPost(data);
-      if (response.status === 200) {
-        Swal.fire({
-          title: "Create Post",
-          text: "Create post successfully",
-          icon: "success",
-        }).then(() => {
-          setPostDetail({
-            title: "",
-            summary: "",
-            content: "",
-            file: null,
-          });
-          navigate("/");
-        });
+
+      if (response.status === 200 || response.status === 201) {
+        Swal.fire("Create Post", "Create post successfully", "success").then(
+          () => navigate("/")
+        );
       }
     } catch (error) {
-      Swal.fire({
-        title: "Create Post",
-        text: error?.response?.data?.message || error.message,
-        icon: "error",
-      });
+      Swal.fire(
+        "Create Post",
+        error?.response?.data?.message || error.message,
+        "error"
+      );
     }
   };
-  return (
-    <div className="w-dvw min-w-full flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-lg max-w-4xl w-full">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-          Create New Post
-        </h2>
-        <div className="mb-4">
-          <label
-            htmlFor=""
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            Title
-          </label>
-          <input
-            type="text"
-            name="title"
-            value={postDetail.title}
-            onChange={handleChange}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:out-line-none focus:shadow-outline"
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label
-            htmlFor=""
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            Summary
-          </label>
-          <input
-            type="text"
-            name="summary"
-            value={postDetail.summary}
-            onChange={handleChange}
-            className="shadow appearance-none border rounded input-lg  w-full py-2 px-3 text-gray-700 leading-tight focus:out-line-none focus:shadow-outline"
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label
-            htmlFor=""
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            Content
-          </label>
 
-          <div className="h-64">
-            <Editor
-              value={content}
-              onChange={handleContentChange}
-              ref={editorRef}
-            />
-          </div>
-        </div>
-        <div className="mb-4">
-          <label
-            htmlFor=""
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            Upload Image
-          </label>
-          <input
-            type="file"
-            name="file"
-            onChange={handleChange}
-            className="shadow appearance-none border rounded  w-full py-2 px-3 text-gray-700 leading-tight focus:out-line-none focus:shadow-outline"
-            required
-          />
-        </div>
-        <div className="flex item-center justify-between">
-          <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            onClick={handleSubmit}
-          >
-            Create Post
-          </button>
-        </div>
+  return (
+    <div className="w-full flex justify-center p-4">
+      <div className="bg-white p-8 rounded-lg max-w-4xl w-full">
+        <h2 className="text-2xl font-bold mb-6 text-center">Create New Post</h2>
+
+        <input
+          type="text"
+          name="title"
+          placeholder="Title"
+          value={postDetail.title}
+          onChange={handleChange}
+          className="input input-bordered w-full mb-4"
+        />
+
+        <input
+          type="text"
+          name="summary"
+          placeholder="Summary"
+          value={postDetail.summary}
+          onChange={handleChange}
+          className="input input-bordered w-full mb-4"
+        />
+
+        <Editor
+          value={postDetail.content}
+          onChange={handleContentChange}
+          ref={editorRef}
+        />
+
+        <input
+          type="file"
+          name="file"
+          onChange={handleChange}
+          className="file-input file-input-bordered w-full my-4"
+        />
+
+        <button
+          onClick={handleSubmit}
+          className="btn btn-primary w-full"
+        >
+          Create Post
+        </button>
       </div>
     </div>
   );

@@ -1,18 +1,32 @@
 import axios from "axios";
 import TokenService from "./token.service";
+
 const baseURL = import.meta.env.VITE_BASE_URL;
 
-const instance = axios.create({
+const api = axios.create({
   baseURL,
+  withCredentials: true,
 });
 
-instance.interceptors.request.use((config) => {
-  const token = TokenService.getAccessToken();
-  console.log(baseURL);
-  if (token) {
-    config.headers["x-access-token"] = token;
-  }
-  return config;
-});
+/**
+ * ✅ Request Interceptor
+ * - แนบ Bearer Token อัตโนมัติ
+ * - ไม่ไปยุ่ง Content-Type (สำคัญกับ multipart)
+ */
+api.interceptors.request.use(
+  (config) => {
+    const token = TokenService.getAccessToken();
 
-export default instance;
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${token}`,
+      };
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+export default api;
